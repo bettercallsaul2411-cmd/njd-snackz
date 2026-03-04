@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>NJD snackz</title>
+
+<style>
+body{font-family: Arial,sans-serif; background:#fff5f7; text-align:center; padding:40px;}
+button{padding:10px 18px;margin:10px;border:none;border-radius:10px;background:#ff6b81;color:white;cursor:pointer;}
+button:hover{background:#ff4f6d;}
+#messages,#orderList,#announcementList{border:1px solid #eee;height:220px;overflow-y:auto;margin:20px auto;padding:15px;background:#fafafa;border-radius:12px;width:400px;}
+</style>
+</head>
+<body>
+
+<h1>🍬 NJD snackz</h1>
+<div style="margin:20px;"><button onclick="adminLogin()" style="background:#333">ADMIN</button></div>
+
+<!-- Announcement Panel (Admin Only) -->
+<div id="announcementSection" style="margin:20px auto;max-width:500px;background:#fff3f5;padding:20px;border-radius:15px;"">
+<h3>📢 Admin Announcements</h3>
+<input type="text" id="announcementInput" placeholder="Make an announcement" style="width:90%;padding:10px;margin:10px;"><br>
+<button onclick="postAnnouncement()">Post Announcement</button>
+<div id="announcementList"></div>
+</div>
+
+<!-- Community Board -->
+<div id="chatSection" style="margin-top:40px;">
+<h2>🍭 Community Board</h2>
+<p>Share clean candy suggestions</p>
+<div id="messages"></div>
+<input type="text" id="chatInput" placeholder="Type your candy suggestion"><br>
+<button onclick="sendMessage()">Post Suggestion</button>
+</div>
+
+<!-- Order Section -->
+<div style="margin:60px auto;max-width:500px;background:#fff;padding:25px;border-radius:20px;box-shadow:0 0 10px rgba(0,0,0,0.1);">
+<h2>🛒 Order Candy</h2>
+<p>Write what candy you want. Admin will review.</p>
+<input id="orderName" placeholder="Your Name" style="width:90%;padding:12px;border-radius:10px;border:1px solid #ddd;margin:8px;">
+<input id="orderEmail" placeholder="Email" style="width:90%;padding:12px;border-radius:10px;border:1px solid #ddd;margin:8px;">
+<input id="orderInput" placeholder="What candy do you want?" style="width:90%;padding:12px;border-radius:10px;border:1px solid #ddd;margin:8px;"><br>
+<button onclick="requestOrder()">Place Order</button>
+<div id="orderList" style="margin-top:20px;border-top:1px solid #eee;"></div>
+</div>
+
+<script>
+let adminMode=false;
+const badWords=["arse","arsehead","arsehole","ass","asshole","bastard","bitch","bloody","bollocks","brotherfucker","bugger","bullshit","child-fucker","cock","cocksucker","crap","cunt","dammit","damn","damned","dick","dick-head","dickhead","dumb-ass","dumbass","dyke","fag","faggot","father-fucker","fatherfucker","fuck","fucked","fucker","fucking","hell","horseshit","jack-ass","jackass","kike","mother-fucker","motherfucker","nigga","nigra","pigfucker","piss","prick","pussy","shit","shite","sisterfuck","sisterfucker","slut","spastic","tranny","twat","wanker"];
+
+function normalizeText(text){return text.toLowerCase().replace(/[^a-z]/g,'');}
+function containsBadWords(text){let clean=normalizeText(text);return badWords.some(w=>clean.includes(w));}
+
+// ===== Community Board =====
+function loadMessages(){
+  let box=document.getElementById('messages');
+  box.innerHTML='';
+  let saved=JSON.parse(localStorage.getItem('candyMessages')||'[]');
+  saved.forEach((msg,index)=>renderMessage(msg,index));
+}
+function renderMessage(msg,index){
+  let box=document.getElementById('messages');
+  let wrapper=document.createElement('div');
+  wrapper.style.display='flex';
+  wrapper.style.justifyContent='space-between';
+  wrapper.style.padding='6px';
+  wrapper.style.borderBottom='1px solid #eee';
+  let textDiv=document.createElement('div');
+  textDiv.innerText=msg;
+  wrapper.appendChild(textDiv);
+  if(adminMode){let delBtn=document.createElement('button');delBtn.innerText='Delete';delBtn.style.fontSize='12px';delBtn.onclick=()=>deleteMessage(index);wrapper.appendChild(delBtn);}
+  box.appendChild(wrapper);
+}
+function sendMessage(){
+  let input=document.getElementById('chatInput');
+  let message=input.value.trim();
+  if(message==='') return;
+  setTimeout(()=>{
+    if(containsBadWords(message)){alert("Let's be mature now."); return;}
+    let saved=JSON.parse(localStorage.getItem('candyMessages')||'[]');
+    saved.push(message);
+    localStorage.setItem('candyMessages',JSON.stringify(saved));
+    loadMessages();
+  },500);
+  input.value='';
+}
+function deleteMessage(index){
+  let saved=JSON.parse(localStorage.getItem('candyMessages')||'[]');
+  saved.splice(index,1);
+  localStorage.setItem('candyMessages',JSON.stringify(saved));
+  loadMessages();
+}
+
+// ===== Announcements =====
+function loadAnnouncements(){
+  let box=document.getElementById('announcementList'); box.innerHTML='';
+  let saved=JSON.parse(localStorage.getItem('candyAnnouncements')||'[]');
+  saved.forEach((msg,index)=>renderAnnouncement(msg,index));
+}
+function renderAnnouncement(msg,index){
+  let box=document.getElementById('announcementList');
+  let wrapper=document.createElement('div'); wrapper.style.display='flex'; wrapper.style.justifyContent='space-between'; wrapper.style.padding='6px'; wrapper.style.borderBottom='1px solid #eee';
+  let text=document.createElement('div'); text.innerText='📢 '+msg; text.style.fontWeight='bold'; text.style.color='#ff4f6d'; wrapper.appendChild(text);
+  if(adminMode){let del=document.createElement('button'); del.innerText='Remove'; del.style.fontSize='12px'; del.onclick=()=>deleteAnnouncement(index); wrapper.appendChild(del);}
+  box.appendChild(wrapper);
+}
+function postAnnouncement(){
+  if(!adminMode) return;
+  let input=document.getElementById('announcementInput'); let text=input.value.trim();
+  if(text==='') return;
+  let saved=JSON.parse(localStorage.getItem('candyAnnouncements')||'[]');
+  saved.push(text); localStorage.setItem('candyAnnouncements',JSON.stringify(saved)); input.value=''; loadAnnouncements();
+}
+function deleteAnnouncement(index){
+  let saved=JSON.parse(localStorage.getItem('candyAnnouncements')||'[]'); saved.splice(index,1); localStorage.setItem('candyAnnouncements',JSON.stringify(saved)); loadAnnouncements();
+}
+
+// ===== Admin Login =====
+function adminLogin(){
+  let password=prompt("Enter ADMIN password");
+  if(password==='34567ui'){
+    adminMode=true;
+    document.getElementById('announcementSection').style.display='block';
+    alert('Admin mode enabled');
+    loadMessages(); loadOrders(); loadAnnouncements();
+  } else alert('Wrong password');
+}
+
+// ===== Order System =====
+function requestOrder(){
+  let name=document.getElementById('orderName').value.trim();
+  let email=document.getElementById('orderEmail').value.trim();
+  let item=document.getElementById('orderInput').value.trim();
+
+  if(name===''||email===''||item===''){
+    alert('Please fill all fields.');
+    return;
+  }
+
+  // Email must contain @ symbol
+  if(!email.includes('@')){
+    alert('Please enter a valid email address.');
+    return;
+  }
+
+  if(containsBadWords(name)||containsBadWords(email)||containsBadWords(item)){
+    alert("Let's be mature now.");
+    return;
+  }
+
+  let saved=JSON.parse(localStorage.getItem('candyOrders')||'[]');
+  saved.push({name,email,item,status:'Pending'});
+  localStorage.setItem('candyOrders',JSON.stringify(saved));
+
+  document.getElementById('orderName').value='';
+  document.getElementById('orderEmail').value='';
+  document.getElementById('orderInput').value='';
+
+  loadOrders();
+}
+function loadOrders(){
+  let box=document.getElementById('orderList'); box.innerHTML='';
+  let saved=JSON.parse(localStorage.getItem('candyOrders')||'[]');
+  saved.forEach((order,index)=>{
+    let div=document.createElement('div'); div.style.display='flex'; div.style.justifyContent='space-between'; div.style.padding='6px'; div.style.borderBottom='1px solid #eee';
+    let text=document.createElement('div'); text.innerHTML=`<b>${order.name}</b> (${order.email})<br>Item: ${order.item}<br>Status: ${order.status}`;
+    div.appendChild(text);
+    if(adminMode){
+      let acceptBtn=document.createElement('button'); acceptBtn.innerText='Accept'; acceptBtn.style.fontSize='12px'; acceptBtn.onclick=()=>acceptOrder(index);
+      div.appendChild(acceptBtn);
+      let delBtn=document.createElement('button'); delBtn.innerText='Remove'; delBtn.style.fontSize='12px'; delBtn.onclick=()=>removeOrder(index); div.appendChild(delBtn);
+    }
+    box.appendChild(div);
+  });
+}
+function acceptOrder(index){
+  let details=prompt("Write the period to meet and who to meet (free response):");
+  if(details===null) return;
+  let saved=JSON.parse(localStorage.getItem('candyOrders')||'[]');
+  if(saved[index]){
+    saved[index].status="Accepted | Details: "+details;
+  }
+  localStorage.setItem('candyOrders',JSON.stringify(saved));
+  loadOrders();
+}
+function removeOrder(index){
+  let saved=JSON.parse(localStorage.getItem('candyOrders')||'[]'); saved.splice(index,1); localStorage.setItem('candyOrders',JSON.stringify(saved)); loadOrders();
+}
+
+window.onload=()=>{loadMessages(); loadOrders(); loadAnnouncements();};
+</script>
+
+</body>
+</html>
