@@ -1,1 +1,3 @@
-# njd-snackz
+index.html
+style.css
+script.js
